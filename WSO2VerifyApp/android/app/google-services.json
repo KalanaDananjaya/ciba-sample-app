@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "720713769788",
+    "project_id": "ciba-sample-app-1",
+    "storage_bucket": "ciba-sample-app-1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:720713769788:android:218cb7ae209c74fb6af439",
+        "android_client_info": {
+          "package_name": "com.wso2verifyapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "720713769788-ouoiotaq10kcdhmtcn3e215s7qp3squg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_eRYUB0AV09b7C7Oh7DPqiMWfeXQEX8k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "720713769788-ouoiotaq10kcdhmtcn3e215s7qp3squg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
