@@ -21,6 +21,7 @@ import {View, Image, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react
 import {AuthorizationService} from '@wso2/auth-push-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BouncyCheckbox from "react-native-bouncy-checkbox";
+import { ConsentService } from '@wso2/auth-push-react-native/lib/services/consent-service';
 
 const storeData = async (authData) => {
     try {
@@ -73,88 +74,68 @@ const getAccountByDeviceId = async (id) => {
 
 
 
-  
+
 
 
 const AuthRequestScreen = ({route, navigation}) => {
 
     let authData = AuthorizationService.processAuthRequest(route.params);
-    let metadata = JSON.parse(authData.metadata);
-    let consentData = metadata.consentData;
-    let application = metadata.application; //check if it is equal with authData.applicationName
-    let accounts = metadata.accounts;
-    let type = metadata.type;
-    let errors = metadata.Errors;
-    //console.log('authData'+ JSON.stringify(authData));
-    console.log('consentdata' + JSON.stringify(consentData));
-    console.log('accounts' + JSON.stringify(accounts));
+    let consentData = ConsentService.processConsentData(authData);
+    let accounts = consentData.accounts;
+
+
+
     getAccountByDeviceId(route.params.data.deviceId).then((account) => {
         console.log('Got the required account: ' + JSON.stringify(account));
         return account;
     });
 
-    accounts = accounts.map((data)=> {
+    accounts = consentData.accounts.map((data)=> {
         return { "checked": false, "account_id": data.account_id, "display_name": data.display_name}
-    })  
+    })
 
 
     const [checkboxes, setCheckboxes] = useState(accounts);
-  
+
     const getApprovedAccountIds = () => {
         const approved_account_ids=[];
         checkboxes.map((account_checkbox) =>{
         if(account_checkbox.checked=== true){
-            approved_account_ids.push(account_checkbox.account_id);
+            consentData.approvedAccountIds.push(account_checkbox.account_id);
         }
         });
-        console.log("approved_account_ids: " + JSON.stringify(approved_account_ids));
-        return approved_account_ids;
+        console.log("approved_account_ids: " + JSON.stringify(consentData.approvedAccountIds));
+        return consentData.approvedAccountIds;
     }
-      
-      
-      const toggleCheckbox = (id, index) => {
-          console.log("checkbox clicked id: "+id)
-          const checkboxData = [...checkboxes];
-          checkboxData[index].checked = !checkboxData[index].checked;
-          setCheckboxes(checkboxData);
-          console.log(`checkbox props: ${JSON.stringify(checkboxes)}`)
-      }
+    
+    
+    const toggleCheckbox = (id, index) => {
+        console.log("checkbox clicked id: "+id)
+        const checkboxData = [...checkboxes];
+        checkboxData[index].checked = !checkboxData[index].checked;
+        setCheckboxes(checkboxData);
+        console.log(`checkbox props: ${JSON.stringify(checkboxes)}`)
+    }
 
     const checBoxesView = checkboxes.map((account_checkbox, index) => {
         return (
-          <View style={{flexDirection:"row"}}> 
-              <BouncyCheckbox
-              key={account_checkbox.account_id}
-              isChecked={account_checkbox.checked}
-              text={account_checkbox.display_name}
-              onPress={() => toggleCheckbox(account_checkbox.id, index)}
-              fillColor="green"
-              textStyle={{
+        <View style={{flexDirection:"row"}}> 
+            <BouncyCheckbox
+            key={account_checkbox.account_id}
+            isChecked={account_checkbox.checked}
+            text={account_checkbox.display_name}
+            onPress={() => toggleCheckbox(account_checkbox.id, index)}
+            fillColor="green"
+            textStyle={{
                 textDecorationLine: "none",
-              }}
-              />
-          </View>
+            }}
+            />
+        </View>
         );
     });
 
-    let organizedConsentData = {"permissions": [], "expiration": {} };
-    consentData.map(function(element, index){
-        if (element.title ==="Permissions"){
-            organizedConsentData.permissions = element.data;
-        }
-        if (element.title ==="Expiration Date Time"){
-            organizedConsentData.expiration = element.data[0];
-            let timestamp = Date.parse(organizedConsentData.expiration);
-            let dateObject = new Date(timestamp);
 
-            organizedConsentData.expiration = {
-                "date": dateObject.toDateString(),
-                "time": dateObject.toTimeString().split(" ")[0]
-            }
-        }
-    });
-
-    let permissionList = organizedConsentData.permissions.map((element) => {
+    let permissionList = consentData.permissions.map((element) => {
         return (<Text style={styles.infoCardTextSmall}>- {element}</Text>)
     })
     
@@ -181,25 +162,14 @@ const AuthRequestScreen = ({route, navigation}) => {
                         <Text style={styles.title}>Are you trying to sign in?</Text>
                     </View>
 
-                    {/* <View>
-                        <View style={[styles.center, styles.connectionCodeView]}>
-                            <Text style={[styles.connectionCodeTitle, styles.center]}>
-                                Connection Code
-                            </Text>
-                            <Text style={styles.connectionCode}>
-                                {authData.connectionCode} {/* 216 765 */}
-                            {/* </Text>
-                        </View>
-                    </View> */} 
-
                     {/* Information cards */}
                     <View style={styles.infoSection}>
 
-                        <View style={styles.infoCardSection}>
+                        <View style={[styles.infoCardSection,{marginTop:'10%'}]}>
                             <View style={styles.infoCardView}>
                                 <Image
                                     source={require('../assets/img/awesome-user.png')}
-                                    style={styles.infoCardImage}
+                                    style={[styles.infoCardImage, {height: '50%'}]}
                                 />
                                 <View style={styles.infoCardTextView}>
                                     <Text style={styles.infoCardTextBig}>
@@ -226,24 +196,37 @@ const AuthRequestScreen = ({route, navigation}) => {
                             <View style={styles.infoCardView}>
                                 <Image
                                     source={require('../assets/img/material-web-asset.png')}
-                                    style={styles.infoCardImage}
+                                    style={[styles.infoCardImage, {height: '100%'}]}
                                 />
                                 <View style={styles.infoCardTextView}>
                                     <Text style={styles.infoCardTextBig}>
                                         {authData.applicationName}
                                     </Text>
+                                    {authData.applicationUrl &&      
                                     <Text style={styles.infoCardTextSmall}>
                                         {authData.applicationUrl}
                                     </Text>
+                                    }
                                 </View>
                             </View>
-                        </View>
 
-                        <View style={[styles.infoCardSection, {marginTop: '10%'}]}>
+                        {authData.bindingMessage &&
+                        <View style={styles.infoCardView}>
+                                <Image
+                                    source={require('../assets/img/material-message.png')}
+                                    style={[styles.infoCardImage, {height: '120%'}]}
+                                />
+                                <View style={styles.infoCardTextView}>
+                                    <Text style={styles.infoCardTextBig}>
+                                        {authData.bindingMessage}
+                                    </Text>
+                                </View>
+                            </View>
+                        }
                             <View style={styles.infoCardView}>
                                 <Image
                                     source={require('../assets/img/material-laptop-mac.png')}
-                                    style={styles.infoCardImage}
+                                    style={[styles.infoCardImage, {height: '50%'}]}
                                 />
                                 <View style={styles.infoCardTextView}>
                                     <Text style={styles.infoCardTextBig}>
@@ -258,44 +241,36 @@ const AuthRequestScreen = ({route, navigation}) => {
                             <View style={styles.infoCardView}>
                                 <Image
                                     source={require('../assets/img/material-location.png')}
-                                    style={styles.infoCardImage}
+                                    style={[styles.infoCardImage, {height: '100%'}]}
                                 />
                                 <View style={styles.infoCardTextView}>
                                     <Text style={styles.infoCardTextBig}>{authData.ipAddress}</Text>
-                                    <Text style={styles.infoCardTextSmall}/>
                                 </View>
                             </View>
                             
 
                             {/* Consent section */}
                             <View style={styles.infoCardView}>
-                                {/* <Image
-                                    source={require('../assets/img/material-location.png')}
-                                    style={styles.infoCardImage}
-                                /> */}
 
-                                
-                                <View style={styles.infoCardTextView}>
+                                <View style={[styles.infoCardTextView,{marginTop:'10%'}]}>
                                     <Text style={styles.infoCardTextBig}>Requesting the following permissions until</Text>
-                                    <Text style={styles.infoCardTextSmall}> Date : {organizedConsentData.expiration.date}</Text>
-                                    <Text style={styles.infoCardTextSmall}> Time : {organizedConsentData.expiration.time}</Text>
+                                    <Text style={styles.infoCardTextSmall}> Date : {consentData.expiration.date}</Text>
+                                    <Text style={styles.infoCardTextSmall}> Time : {consentData.expiration.time}</Text>
+                                    <Text style={styles.infoCardTextSmall}> Additional Info : {consentData.additionalInformation}</Text>
                                     <View> 
                                         <Text style={styles.infoCardTextSmall}> Permissions : </Text>
                                         {permissionList}
                                     </View>
                                     <Text style={[styles.infoCardTextBig, {marginTop:'10%', marginBottom: '0%'}]}>{checBoxesView}</Text>
-                                    <Text style={styles.infoCardTextSmall}/>
+                                
                                     
                                 </View>
                             </View>
-
-
-
                         </View>
                     </View>
                 </View>
 
-                <View style={styles.responseButtonContainer}>
+                <View style={[styles.responseButtonContainer,{marginBottom:'10%',marginTop:'-15%'}]}>
                     <TouchableOpacity
                         style={styles.responseButton}
                         activeOpacity={0.7}
@@ -303,7 +278,8 @@ const AuthRequestScreen = ({route, navigation}) => {
                             const approved_account_ids = {
                                 "approvedAccountIds" : getApprovedAccountIds()
                             }
-                            authData.metadata = JSON.stringify(approved_account_ids);
+                            authData = AuthorizationService.addApprovedAccountIds(authData,approved_account_ids);
+
                             AuthorizationService.sendAuthRequest(
                                 authData,
                                 'DENIED',
@@ -340,11 +316,11 @@ const AuthRequestScreen = ({route, navigation}) => {
                     <TouchableOpacity
                         style={styles.responseButton}
                         onPress={() => {
-                            console.log('Yes auth response body: ', requestAccount.privateKey);
                             const approved_account_ids = {
                                 "approvedAccountIds" : getApprovedAccountIds()
                             }
-                            authData.metadata = JSON.stringify(approved_account_ids);
+
+                            authData = AuthorizationService.addApprovedAccountIds(authData,approved_account_ids);
                             AuthorizationService.sendAuthRequest(
                                 authData,
                                 'SUCCESSFUL',
@@ -382,7 +358,7 @@ const AuthRequestScreen = ({route, navigation}) => {
             </View>
             <View style={{height:100}}></View>
         </ScrollView>
-       
+    
     );
 };
 
@@ -392,7 +368,7 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
         padding: 10,
         flex: 1
-      },
+    },
     logo: {
         alignSelf: 'center',
         width: '20%',
